@@ -43,7 +43,7 @@ SELECT * FROM books WHERE name RLIKE"^[а-к]"
 SELECT * FROM books WHERE name LIKE'АПП%' AND YEAR(date)=2000 AND price<20
 
 #16. Вивести книги назви яких починаються на літери "АПП", закінчуються на "е", видані в першій половині 2000 року
-SELECT * FROM books WHERE name LIKE'АПП%' AND date BETWEEN CAST('2000-01-1'AS DATE) AND CAST('2000-07-1' AS DATE)
+SELECT * FROM books WHERE name LIKE'АПП%e' AND date BETWEEN CAST('2000-01-1'AS DATE) AND CAST('2000-07-1' AS DATE)
 
 #17. Вивести книги, в назвах яких є слово Microsoft, але немає слова Windows
 SELECT * FROM books WHERE name LIKE'%Microsoft%' AND name NOT LIKE'%Windows%'
@@ -52,7 +52,7 @@ SELECT * FROM books WHERE name LIKE'%Microsoft%' AND name NOT LIKE'%Windows%'
 SELECT * FROM books WHERE name RLIKE"[0-9]"
 
 #19. Вивести книги, в назвах яких присутні не менше трьох цифр.
-SELECT * FROM books WHERE name RLIKE"[0-9]{3}"
+SELECT * FROM books WHERE name RLIKE"[0-9]{3,}"
 
 #20. Вивести книги, в назвах яких присутній рівно п'ять цифр.
 SELECT * FROM books WHERE (LENGTH(name)-LENGTH(REGEXP_REPLACE(name, '[0-9]','')))=5
