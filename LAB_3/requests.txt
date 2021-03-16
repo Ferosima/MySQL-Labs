@@ -5,7 +5,7 @@ SELECT * FROM books WHERE price IS NULL OR price=0
 SELECT * FROM books WHERE price IS NOT  NULL AND circulation IS NULL
 
 3. Вивести книги, про дату видання яких нічого не відомо.
-SELECT * FROM books WHERE date IS NOT
+SELECT * FROM books WHERE date IS NULL
 
 4. Вивести книги, з дня видання яких пройшло не більше року.
 SELECT * FROM books WHERE date>= DATE_SUB(NOW(), INTERVAL 1 YEAR)
@@ -20,7 +20,7 @@ SELECT * FROM books WHERE pages BETWEEN 300 AND 400 ORDER BY name DESC
 SELECT * FROM books WHERE price BETWEEN 20 AND 30 ORDER BY date DESC
 
 8. Вивести список книг, відсортованих в алфавітному порядку назв і ціною по спадаючій
-SELECT * FROM books ORDER BY `books`.`price` ASC
+SELECT * FROM books ORDER BY `books`,`price` DESC
 
 9. Вивести книги, у яких ціна однієї сторінки < 10 копійок.
 SELECT * FROM books WHERE (price/pages)<0.10

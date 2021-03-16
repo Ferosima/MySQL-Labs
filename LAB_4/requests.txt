@@ -59,3 +59,5 @@ SELECT category AS 'Категорія', publisher AS 'Видавництво',t
 
 20.	Вивести список видавництв, у яких округлена до цілого ціна однієї сторінки більше 10 копійок. 
 SELECT publisher AS '', ROUND((price/pages),2) FROM books WHERE ROUND((price/pages),2)>0.10 GROUP BY publisher
+
+SELECT SUBSTRING(name,1,1) AS 'First letter', COUNT(name) ,publisher FROM books GROUP BY SUBSTRING(name,1,1) ORDER BY publisher DESC
