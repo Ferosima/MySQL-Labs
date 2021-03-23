@@ -1,0 +1,127 @@
+1.Вивести значення наступних колонок: назва книги, ціна, назва видавництва, формат.
+CREATE PROCEDURE GetBookData1()
+SELECT books.name,price,publishers.name as publisher,formats.name as formats FROM books
+JOIN publishers
+ON publishers.id=books.publisher_id
+JOIN formats
+ON formats.id=books.format_id
+
+2.Вивести значення наступних колонок: тема, категорія, назва книги, назва видавництва. Фільтр по темам і категоріям.
+CREATE PROCEDURE GetBookData2()
+SELECT topics.name as topics,categories.name as categories,books.name,price,publishers.name as publisher FROM books
+JOIN topics
+ON topics.id=books.topic_id
+JOIN categories
+ON categories.id=books.category_id
+JOIN publishers
+ON publishers.id=books.publisher_id
+ORDER BY topics.name, categories.name
+
+3.Вивести книги видавництва 'BHV', видані після 2000 р
+CREATE PROCEDURE GetBookData3(IN publisher_name VARCHAR(255), year int)
+SELECT books.name,price,publishers.name as publisher,formats.name as formats FROM books
+JOIN publishers
+ON publishers.id=books.publisher_id
+JOIN formats
+ON formats.id=books.format_id
+WHERE publishers.name LIKE CONCAT('%',publisher_name,'%') AND YEAR(date)>year
+
+CALL GetBookData3('BHV',2000)
+
+4.Вивести загальну кількість сторінок по кожній назві категорії. Фільтр по спадаючій / зростанню кількості сторінок.
+CREATE PROCEDURE GetBookData4()
+SELECT SUM(pages),categories.name as category FROM books
+JOIN categories
+ON categories.id=books.category_id
+GROUP by categories.name
+ORDER BY SUM(pages)
+
+5.Вивести середню вартість книг по темі 'Використання ПК' і категорії 'Linux'.
+CREATE PROCEDURE GetBookData5(IN topic_name VARCHAR(255), category_name VARCHAR(255))
+SELECT topics.name as topic,categories.name as category,AVG(price) FROM books
+JOIN topics
+ON topics.id=books.topic_id
+JOIN categories
+ON categories.id=books.category_id
+WHERE topics.name LIKE CONCAT('%', topic_name , '%') AND categories.name LIKE CONCAT('%', category_name , '%')
+GROUP BY topics.name
+
+CALL GetBookData5('Використання ПК','Linux')
+
+6.1Вивести всі дані універсального відношення.
+CREATE PROCEDURE GetBookData6()
+SELECT
+    books.*,
+    publishers.name AS publisher,
+    categories.name AS category,
+    formats.name AS format,
+    topics.name AS topic
+FROM
+    books
+LEFT JOIN publishers ON publishers.id = books.publisher_id
+LEFT JOIN categories ON categories.id = books.category_id
+LEFT JOIN formats ON formats.id = books.format_id
+LEFT JOIN topics ON topics.id = books.topic_id
+
+7.	Вивести пари книг, що мають однакову кількість сторінок.
+CREATE PROCEDURE GetBookData7()
+SELECT DISTINCT book_1.name as one_name, book_2.name two_name FROM books book_1
+JOIN books book_2
+  ON  book_1.pages = book_2.pages AND  book_1.number != book_2.number
+
+8.	Вивести тріади книг, що мають однакову ціну.
+CREATE PROCEDURE GetBookData8()
+SELECT DISTINCT book_1.name as one_name, book_2.name,book_3.name three_name FROM books book_1
+JOIN books book_2
+  ON  book_1.price = book_2.price 
+  JOIN books book_3
+  ON book_2.price= book_3.price
+
+9.	Вивести всі книги категорії 'C++'.
+CREATE PROCEDURE GetBookData9(IN category_name VARCHAR(255)) 
+SELECT * from books 
+WHERE category_id = (SELECT id from categories WHERE categories.name Like CONCAT('%',category_name,'%'))
+
+CALL GetBookData9('C++')
+
+10.	Вивести список видавництв, у яких розмір книг перевищує 400 сторінок.
+CREATE PROCEDURE GetBookData10(IN count_pages int)
+SELECT name
+FROM publishers
+WHERE (SELECT MIN(pages) FROM books WHERE books.publisher_id = publishers.id) > count_pages
+
+11.	Вивести список категорій за якими більше 3-х книг.
+CREATE PROCEDURE GetBookData11(IN count_books int)
+SELECT name
+FROM publishers
+WHERE (SELECT COUNT(name) FROM books WHERE books.publisher_id = publishers.id) > count_books
+
+12.	Вивести список книг видавництва 'BHV', якщо в списку є хоча б одна книга цього видавництва.
+CREATE PROCEDURE GetBookData12(IN topic_name VARCHAR(255))
+SELECT *
+FROM books
+WHERE EXISTS (SELECT * FROM publishers WHERE publishers.name LIKE CONCAT('%',topic_name,'%') AND publishers.id = books.publisher_id)
+
+CALL GetBookData12('BHV')
+
+13.	Вивести список книг видавництва 'BHV', якщо в списку немає жодної книги цього видавництва.
+CREATE PROCEDURE GetBookData13(IN topic_name VARCHAR(255))
+SELECT *
+FROM books
+WHERE NOT EXISTS (SELECT * FROM publishers WHERE publishers.name LIKE CONCAT('%',topic_name,'%') AND publishers.id = books.publisher_id) 
+AND publisher_id =(SELECT publishers.id  FROM publishers WHERE publishers.name LIKE CONCAT('%',topic_name,'%'))
+
+CALL GetBookData13('BHV')
+
+14.	Вивести відсортоване загальний список назв тем і категорій.
+CREATE PROCEDURE GetBookData14()
+((SELECT * FROM topics)
+UNION 
+(SELECT * FROM categories))
+ORDER BY name
+
+15.	Вивести відсортований в зворотному порядку загальний список перших слів назв книг і категорій що не повторюються
+CREATE PROCEDURE GetBookData15()
+((SELECT substring_index(name,' ',1)as name FROM books)
+UNION 
+(SELECT substring_index(name,' ',1) as name FROM categories)) ORDER BY name DESC
