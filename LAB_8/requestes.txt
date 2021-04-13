@@ -1,0 +1,343 @@
+Проектування і перевірка тригерів (trigger), що активізуються при додаванні (insert), виправленні (update) і видаленні (delete) даних.
+
+Реалізувати набір тригерів, що реалізують такі ділові правила:
+1.	Кількість тем може бути в діапазоні від 5 до 10.
+
+CREATE TRIGGER trig_1 
+	ON [library].[library_2].[topics] FOR INSERT,DELETE
+	AS 
+		IF (SELECT COUNT(*) FROM topics) > 10
+			BEGIN 
+				PRINT 'Кількість тем не може бути більше 10'
+				ROLLBACK
+			END
+		IF (SELECT COUNT(*) FROM topics) < 5
+			BEGIN 
+				PRINT 'Кількість тем не може бути менше 5'
+				ROLLBACK
+		END
+
+
+--for test
+
+--DELETE FROM library_2.topics
+--WHERE name='Кібербезпека
+
+--INSERT INTO library_2.topics (name)
+--VALUES ('a'),('b'),('c'),('d'),('e'),('f'),('g');
+#############################################################################################
+
+2.	Новинкою може бути тільки книга видана в поточному році.
+
+CREATE TRIGGER trigger_2 [library_2].[trigger_2]
+	ON [library].[library_2].[books] FOR INSERT,UPDATE
+	AS  
+		IF (SELECT Count(name) FROM INSERTED WHERE YEAR(date)<YEAR(CURRENT_TIMESTAMP) AND isNEW=1) > 0
+			BEGIN 
+				PRINT 'Новинкою може бути книга яка видана в поточному році'
+				ROLLBACK
+		END
+
+--for test
+
+--UPDATE library_2.books
+--SET isNEW=1
+--WHERE YEAR(date)<YEAR(CURRENT_TIMESTAMP)
+#############################################################################################
+
+3.	Книга з кількістю сторінок до 100 не може коштувати більше 10 $, до 200 - 20 $, до 300 - 30 $.
+
+CREATE TRIGGER trigger_3  
+	ON [library].[library_2].[books] FOR INSERT,UPDATE
+	AS  
+		IF (SELECT Count(*) FROM INSERTED WHERE (price/(CEILING(pages/100.0) * 100))>0.1) > 0
+			BEGIN 
+				PRINT 'Книга не може коштувати більше 10$ за 100 сторінок'
+				ROLLBACK
+		END
+
+--for test
+
+--UPDATE library_2.books
+--SET price=50
+--WHERE pages=320
+#############################################################################################
+
+4.	Видавництво "BHV" не випускає книги накладом меншим 5000, а видавництво Diasoft - 10000.
+
+CREATE TRIGGER trigger_4 
+		ON [library].[library_2].[books] FOR INSERT,UPDATE
+	AS  
+				DECLARE @newPublisher_id int
+				DECLARE @oldPublisher_id int
+				DECLARE @newCirculation int
+				DECLARE @oldCirculation int
+				SELECT @newPublisher_id= publisher_id FROM inserted
+				SELECT @oldPublisher_id= publisher_id FROM deleted
+				SELECT @newCirculation= circulation FROM inserted
+				SELECT @oldCirculation= circulation FROM deleted
+	IF(@newPublisher_id<>@oldPublisher_id OR @newCirculation<>@oldCirculation)
+		BEGIN
+			IF (
+				SELECT Count(*) FROM inserted 
+				JOIN library_2.publishers 
+				ON publisher_id=publishers.id 
+				WHERE publishers.name LIKE 'BHV%' AND circulation<5000
+			) > 0
+				BEGIN 
+					PRINT 'BHV не випускає книги накладом меншим 5000'
+					ROLLBACK
+				END
+			IF (
+				SELECT Count(*) FROM inserted 
+				JOIN library_2.publishers 
+				ON publisher_id=publishers.id 
+				WHERE publishers.name LIKE 'Diasoft%' AND circulation<10000
+			) > 0
+				BEGIN 
+					PRINT 'Diasoft не випускає книги накладом меншим 10000'
+					ROLLBACK
+				END
+		END
+
+--for test
+
+--UPDATE library_2.books
+--SET circulation=9999
+--FROM library_2.books
+--JOIN library_2.publishers 
+--ON publisher_id=publishers.id 
+--WHERE publishers.name LIKE 'Diasoft%'
+#############################################################################################
+
+5.	Книги з однаковим кодом повинні мати однакові дані.
+CREATE TRIGGER trigger_5 ON [library].[library_2].[books] for INSERT,UPDATE
+	AS
+	DECLARE @CODE int
+	SELECT @CODE = CODE FROM inserted
+	BEGIN
+		IF(
+			(SELECT COUNT(*) as count_of_different_row 
+				FROM (
+					SELECT COUNT(*) as different_row 
+						FROM library_2.books
+						WHERE CODE=@CODE
+						GROUP BY 
+							CODE,NAME,price,publisher_id,pages,format_id,date,circulation,topic_id,category_id)
+				as temp)
+			>1)
+				BEGIN 
+					PRINT 'Книги з однаковим кодом повинні мати однакові дані'  
+					ROLLBACK
+				END
+	END
+
+--for test
+
+--UPDATE  library_2.books
+--SET name='Аппаратные средства мультимедия. Видеосистема РС'
+--WHERE CODE=5110
+
+--USE [library]
+--GO
+
+--INSERT INTO [library_2].[books]
+--           ([number]
+--		   ,[CODE]
+--           ,[isNew]
+--           ,[NAME]
+--           ,[price]
+--           ,[publisher_id]
+--           ,[pages]
+--           ,[format_id]
+--           ,[date]
+--           ,[circulation]
+--           ,[topic_id]
+--           ,[category_id])
+--     VALUES
+--           (19
+--		   ,6001
+--		   ,0
+--		   ,'Язык программирования С++. Лекции и упражнения'
+--		   ,29
+--		   ,1
+--		   ,656
+--		   ,2
+--		   ,'2000-12-12'
+--		   ,5000
+--		   ,3
+--		   ,9),
+--		   (21
+--		   ,6001
+--		   ,0
+--		   ,'Язык программирования С++. Лекции и упражнения'
+--		   ,29
+--		   ,1
+--		   ,656
+--		   ,2
+--		   ,'2000-12-12'
+--		   ,5000
+--		   ,3
+--		   ,9)
+--GO
+
+--different data
+
+--USE [library]
+--GO
+
+--INSERT INTO [library_2].[books]
+--           ([number]
+--		   ,[CODE]
+--           ,[isNew]
+--           ,[NAME]
+--           ,[price]
+--           ,[publisher_id]
+--           ,[pages]
+--           ,[format_id]
+--           ,[date]
+--           ,[circulation]
+--           ,[topic_id]
+--           ,[category_id])
+--     VALUES
+--           (23
+--		   ,6001
+--		   ,0
+--		   ,'Язык программирования С++. Лекции и упражнения'
+--		   ,29
+--		   ,1
+--		   ,656
+--		   ,2
+--		   ,'2000-12-12'
+--		   ,5000
+--		   ,3
+--		   ,9),
+--		   (22
+--		   ,5110
+--		   ,0
+--		   ,'Аппаратные средства мультимедия. Видеосистема РС'
+--		   ,15.51
+--		   ,1
+--		   ,400
+--		   ,1	
+--		   ,'2000-07-24'	
+--		   ,5000	
+--		   ,1	
+--		   ,1)
+--
+
+#############################################################################################
+
+6.	При спробі видалення книги видається інформація про кількість видалених рядків. Якщо користувач не "dbo", то видалення забороняється.
+
+CREATE TRIGGER trigger_6
+	ON [library].[library_2].[books] FOR DELETE
+		AS
+			IF (SYSTEM_USER='dbo')
+				BEGIN
+					PRINT 'Data deleted' SELECT * FROM deleted
+				END
+			ELSE
+				BEGIN
+					PRINT 'Ви немаєте прав для видалення'
+					ROLLBACK
+				END
+
+#############################################################################################
+
+7.	Користувач "dbo" не має права змінювати ціну книги.
+CREATE TRIGGER trigger_7
+	ON [library].[library_2].[books] FOR UPDATE
+		AS
+			DECLARE @newPrice int
+			DECLARE @oldPrice int
+			SELECT @newPrice = price FROM inserted
+			SELECT @oldPrice = price FROM deleted
+		BEGIN
+			IF(SYSTEM_USER<>'dbo' AND @newPrice<>@oldPrice )
+				BEGIN 
+					PRINT 'Користувач ' + SYSTEM_USER + ' не має прав для зміни ціни'
+					ROLLBACK
+				END
+		END
+
+--for test
+--UPDATE  top(1) library_2.books
+--SET price=15.51
+----15.51
+--WHERE CODE=5110 
+
+#############################################################################################
+
+8.	Видавництва ДМК і Еком підручники не видають.
+
+CREATE TRIGGER trigger_8
+	ON [library].[library_2].[books] FOR INSERT,UPDATE
+	AS
+		DECLARE @publisher varchar(255)
+		DECLARE @category varchar(255)
+		SELECT @publisher = publishers.name FROM inserted books 
+								JOIN library_2.publishers publishers
+									ON  publishers.id=books.publisher_id
+		SELECT @category = categories.name FROM inserted books 
+								JOIN library_2.categories categories
+									ON  categories.id=books.category_id
+	IF (@publisher LIKE'ДМК%' OR @publisher LIKE'Еком%' AND @category='Підручники')
+		BEGIN
+			PRINT 'Видавництва ДМК і Еком підручники не видають'
+			ROLLBACK
+		END
+
+--for test
+
+--UPDATE  top(1) library_2.books
+--SET category_id=1
+--WHERE publisher_id=6 
+#############################################################################################
+
+9.	Видавництво не може випустити більше 10 новинок протягом одного місяця поточного року.
+
+CREATE TRIGGER trigger_9
+	ON [library].[library_2].[books] FOR INSERT,UPDATE
+	AS 
+	IF (
+		(SELECT COUNT(*) 
+			FROM (
+				SELECT publisher_id,COUNT(*) as count_new_book
+				FROM library_2.books 
+				WHERE isNew=1 and date>DATEADD(month,-1,CURRENT_TIMESTAMP)
+				GROUP BY publisher_id) as temp
+			WHERE temp.count_new_book>10)
+		>=1)
+			BEGIN 
+				PRINT 'Видавництво не може випустити більше 10 новинок протягом одного місяця поточного року'
+				ROLLBACK
+			END
+
+#############################################################################################
+
+10.	Видавництво BHV не випускає книги формату 60х88 / 16.
+
+CREATE TRIGGER trigger_10
+	ON [library].[library_2].[books] FOR INSERT,UPDATE
+	AS
+		DECLARE @publisher varchar(255)
+		DECLARE @format varchar(255)
+		SELECT @publisher = publishers.name FROM inserted books 
+								JOIN library_2.publishers publishers
+									ON  publishers.id=books.publisher_id
+		SELECT @format = formats.name FROM inserted books 
+								JOIN library_2.formats formats
+									ON  formats.id=books.format_id
+
+	IF (@publisher LIKE'BHV%' AND @format LIKE'60х88/16%')
+		BEGIN
+			PRINT 'Видавництво BHV не випускає книги формату 60х88 / 16'
+			ROLLBACK
+		END
+
+--for test
+--UPDATE library_2.books
+--SET format_id=3
+--WHERE publisher_id=1
+#############################################################################################
