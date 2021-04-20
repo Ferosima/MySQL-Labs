@@ -1,0 +1,86 @@
+Проектування користувальницьких функцій (user defined function). Робота з SQL курсором (cursor).
+
+1.	Розробити та перевірити скалярну (scalar) функцію, що повертає загальну вартість книг виданих в певному році.
+
+CREATE FUNCTION CountBooksInYear (@year INT)
+RETURNS FLOAT AS
+BEGIN
+	DECLARE @sum FLOAT
+	SELECT @sum = SUM(price) 
+				FROM library_2.books
+						WHERE YEAR(date)=@year
+    RETURN @sum
+
+END
+
+--FOR TEST
+SELECT dbo.CountBooksInYear(1999) as 'count'
+
+#########################################################################################################
+
+2.	Розробити і перевірити табличну (inline) функцію, яка повертає список книг виданих в певному році.
+
+CREATE FUNCTION CountBooksInYearInline (@year INT)
+	RETURNS TABLE AS
+  		RETURN (SELECT *
+				FROM library_2.books
+					WHERE YEAR(date)=@year)
+
+--FOR TEST
+SELECT * FROM dbo.CountBooksInYearInline(1999)
+
+#########################################################################################################
+
+3.	Розробити і перевірити функцію типу multi-statement, яка буде:
+	a.	приймати в якості вхідного параметра рядок, що містить список назв видавництв, розділених символом ‘;’;  
+	b.	виділяти з цього рядка назву видавництва;
+	c.	формувати нумерований список назв видавництв.
+
+CREATE FUNCTION TablePublishers (@publishers_name VARCHAR(2550))
+RETURNS TABLE AS
+  RETURN (SELECT ROW_NUMBER() OVER(ORDER BY name ASC) AS number,name 
+			FROM library_2.publishers
+				 JOIN STRING_SPLIT(@publishers_name,';')
+					  ON publishers.name Like value+'%')
+--FOR TEST
+SELECT * FROM dbo.TablePublisher('BHV;Diasoft')
+
+#########################################################################################################
+
+4.	Виконати набір операцій по роботі з SQL курсором: оголосити курсор;
+	a.	використовувати змінну для оголошення курсору;
+	b.	відкрити курсор;
+	c.	переприсвоїти курсор іншої змінної;
+	d.	виконати вибірку даних з курсору;
+	e.	закрити курсор;
+5.	звільнити курсор. Розробити курсор для виводу списка книг виданих у визначеному році
+
+DECLARE 
+    @book_name VARCHAR(MAX), 
+    @date  DATETIME;
+
+DECLARE cursor_get_books CURSOR
+FOR SELECT 
+        name, 
+        date
+    FROM 
+        library_2.books;
+
+OPEN cursor_get_books;
+
+FETCH NEXT FROM cursor_get_books INTO 
+    @book_name, 
+    @date;
+
+WHILE @@FETCH_STATUS = 0
+    BEGIN
+		IF (2000=YEAR(@date))
+			PRINT @book_name + CAST(YEAR(@date) AS VARCHAR(30));
+		FETCH NEXT FROM cursor_get_books INTO 
+            @book_name, 
+            @date;
+    END;
+
+CLOSE cursor_get_books;
+
+DEALLOCATE cursor_get_books;
